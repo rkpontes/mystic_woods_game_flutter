@@ -1,0 +1,59 @@
+name: mystic_woods
+description: "A new Flutter project."
+publish_to: 'none' 
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.1 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  flame: ^1.18.0
+  flame_tiled: ^1.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/tiles/
+    - assets/images/
+    - assets/images/HUD/knob.png
+    - assets/images/HUD/joystick.png
+    - assets/images/rpg-pack/atlas.png
+    - assets/images/rpg-pack/chars/gabe/gabe-idle-run.png
+    - assets/images/rpg-pack/chars/mani/mani-idle-run.png
+  
+  
+  
+
+  
+  
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  

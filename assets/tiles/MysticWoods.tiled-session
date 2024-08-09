@@ -1,0 +1,42 @@
+{
+    "activeFile": "",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "Level-01.tmx": {
+            "scale": 0.9173437499999999,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 320.49054675523763,
+                "y": 184.22755918923525
+            }
+        },
+        "atlas.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "gabe-idle-run.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "region1_stage1.tmx": {
+            "scale": 0.91,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 320.8791208791209,
+                "y": 259.34065934065933
+            }
+        }
+    },
+    "openFiles": [
+    ],
+    "project": "MysticWoods.tiled-project",
+    "recentFiles": [
+        "region1_stage1.tmx",
+        "gabe-idle-run.tsx",
+        "Level-01.tmx",
+        "atlas.tsx"
+    ]
+}
