@@ -2,18 +2,18 @@
 
 import 'dart:async';
 
+import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
-import 'package:mystic_woods/mystic_woods.dart';
+import 'package:mystic_woods/components/collision_area.dart';
+import 'package:mystic_woods/components/hitbox_area.dart';
+import 'package:mystic_woods/core/utils.dart';
+import 'package:mystic_woods/game_world.dart';
 
 enum PlayerState { idle, running }
 
-enum PlayerDirection { up, down, left, right, none }
-
-enum PlayerFacing { left, right }
-
 class Player extends SpriteAnimationGroupComponent
-    with HasGameRef<MysticWoods>, KeyboardHandler {
+    with HasGameRef<GameWorld>, KeyboardHandler {
   String character;
 
   Player({
@@ -24,60 +24,57 @@ class Player extends SpriteAnimationGroupComponent
   late final SpriteAnimation idleAnimation;
   late final SpriteAnimation runningAnimation;
 
-  PlayerDirection playerDirection = PlayerDirection.none;
-  double moveSpeed = 100;
+  double horizontalMoviment = 0.0;
+  double verticalMoviment = 0.0;
+  double moveSpeed = 50;
   Vector2 velocity = Vector2.zero();
-  PlayerFacing playerFacing = PlayerFacing.right;
+  List<CollisionArea> collisionAreas = [];
+  HitboxArea hitbox = HitboxArea(
+    position: Vector2(10, 3),
+    size: Vector2(14, 18),
+  );
 
   @override
   FutureOr<void> onLoad() {
     _onLoadAllAnimations();
+    debugMode = true;
+    add(RectangleHitbox(
+      position: hitbox.position,
+      size: hitbox.size,
+      isSolid: true,
+    ));
     return super.onLoad();
   }
 
   @override
   void update(double dt) {
+    _updatePlayerState();
     _updatePlayerMovement(dt);
+    _checkCollisions();
     super.update(dt);
   }
 
   @override
   bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
-    final isLeftKeyPressed =
-        keysPressed.contains(LogicalKeyboardKey.arrowLeft) ||
-            keysPressed.contains(LogicalKeyboardKey.keyA);
-    final isRightKeyPressed =
-        keysPressed.contains(LogicalKeyboardKey.arrowRight) ||
-            keysPressed.contains(LogicalKeyboardKey.keyD);
-    final isUpKeyPressed = keysPressed.contains(LogicalKeyboardKey.arrowUp) ||
-        keysPressed.contains(LogicalKeyboardKey.keyW);
-    final isDownKeyPressed =
-        keysPressed.contains(LogicalKeyboardKey.arrowDown) ||
-            keysPressed.contains(LogicalKeyboardKey.keyS);
+    horizontalMoviment = 0.0;
+    verticalMoviment = 0.0;
 
-    // speed
+    final isLeftKeyPressed = keysPressed.contains(LogicalKeyboardKey.arrowLeft);
+    final isRightKeyPressed =
+        keysPressed.contains(LogicalKeyboardKey.arrowRight);
+    final isUpKeyPressed = keysPressed.contains(LogicalKeyboardKey.arrowUp);
+    final isDownKeyPressed = keysPressed.contains(LogicalKeyboardKey.arrowDown);
+
+    horizontalMoviment += isLeftKeyPressed ? -1 : 0;
+    horizontalMoviment += isRightKeyPressed ? 1 : 0;
+    verticalMoviment += isUpKeyPressed ? -1 : 0;
+    verticalMoviment += isDownKeyPressed ? 1 : 0;
+
     if (keysPressed.contains(LogicalKeyboardKey.shiftLeft) ||
         keysPressed.contains(LogicalKeyboardKey.shiftRight)) {
       moveSpeed = 200;
     } else {
       moveSpeed = 100;
-    }
-
-    // direction
-    if (isLeftKeyPressed && isRightKeyPressed) {
-      playerDirection = PlayerDirection.none;
-    } else if (isLeftKeyPressed) {
-      playerDirection = PlayerDirection.left;
-    } else if (isRightKeyPressed) {
-      playerDirection = PlayerDirection.right;
-    } else if (isUpKeyPressed && isDownKeyPressed) {
-      playerDirection = PlayerDirection.none;
-    } else if (isUpKeyPressed) {
-      playerDirection = PlayerDirection.up;
-    } else if (isDownKeyPressed) {
-      playerDirection = PlayerDirection.down;
-    } else {
-      playerDirection = PlayerDirection.none;
     }
 
     return super.onKeyEvent(event, keysPressed);
@@ -93,7 +90,7 @@ class Player extends SpriteAnimationGroupComponent
   }
 
   SpriteAnimation _spriteAnimation(PlayerState state) {
-    double stepTime = 0.09;
+    double stepTime = 0.07;
     int amount = 7;
 
     if (state == PlayerState.idle) {
@@ -111,41 +108,69 @@ class Player extends SpriteAnimationGroupComponent
     );
   }
 
-  void _updatePlayerMovement(double dt) {
-    double dirX = 0.0;
-    double dirY = 0.0;
-    switch (playerDirection) {
-      case PlayerDirection.left:
-        if (playerFacing != PlayerFacing.left) {
-          flipHorizontallyAroundCenter();
-          playerFacing = PlayerFacing.left;
-        }
-        current = PlayerState.running;
-        dirX -= moveSpeed;
-        break;
-      case PlayerDirection.right:
-        if (playerFacing != PlayerFacing.right) {
-          flipHorizontallyAroundCenter();
-          playerFacing = PlayerFacing.right;
-        }
-        current = PlayerState.running;
-        dirX += moveSpeed;
-        break;
-      case PlayerDirection.up:
-        current = PlayerState.running;
-        dirY -= moveSpeed;
-        break;
-      case PlayerDirection.down:
-        current = PlayerState.running;
-        dirY += moveSpeed;
-        break;
-      case PlayerDirection.none:
-        current = PlayerState.idle;
-        break;
-      default:
-        break;
+  void _updatePlayerState() {
+    PlayerState playerState = PlayerState.idle;
+
+    if (velocity.x < 0 && scale.x > 0) {
+      flipHorizontallyAroundCenter();
+    } else if (velocity.x > 0 && scale.x < 0) {
+      flipHorizontallyAroundCenter();
     }
-    velocity = Vector2(dirX, dirY);
-    position += velocity * dt;
+
+    if (velocity.x != 0 || velocity.y != 0) {
+      playerState = PlayerState.running;
+    }
+
+    current = playerState;
+  }
+
+  void _updatePlayerMovement(double dt) {
+    velocity.x = horizontalMoviment * moveSpeed;
+    velocity.y = verticalMoviment * moveSpeed;
+    position.x += velocity.x * dt;
+    position.y += velocity.y * dt;
+  }
+
+  void _checkCollisions() {
+    bool hasCollision;
+
+    do {
+      hasCollision = false;
+
+      for (final collision in collisionAreas) {
+        if (checkCollision(this, collision)) {
+          final intersection = toRect().intersect(collision.toRect());
+          final intersectionArea = intersection.width * intersection.height;
+
+          if (intersectionArea > 0) {
+            hasCollision = true;
+
+            // Verifica se a colisão é horizontal ou vertical
+            if (intersection.width > intersection.height) {
+              // Colisão vertical (cima/baixo)
+              if (velocity.y > 0) {
+                // Movendo-se para baixo, reposiciona para cima
+                position.y -= intersection.height;
+              } else if (velocity.y < 0) {
+                // Movendo-se para cima, reposiciona para baixo
+                position.y += intersection.height;
+              }
+            } else {
+              // Colisão horizontal (esquerda/direita)
+              if (velocity.x > 0) {
+                // Movendo-se para a direita, reposiciona para a esquerda
+                position.x -= intersection.width;
+              } else if (velocity.x < 0) {
+                // Movendo-se para a esquerda, reposiciona para a direita
+                position.x += intersection.width;
+              }
+            }
+
+            // Sai do loop para recalcular as colisões após o ajuste da posição
+            break;
+          }
+        }
+      }
+    } while (hasCollision); // Continua até não haver mais colisões
   }
 }

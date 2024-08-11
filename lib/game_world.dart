@@ -1,31 +1,30 @@
 import 'dart:async';
-
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/painting.dart';
+import 'package:flutter/widgets.dart';
 import 'package:mystic_woods/components/player.dart';
-import 'package:mystic_woods/game_config.dart';
 import 'package:mystic_woods/components/level.dart';
 
-class MysticWoods extends FlameGame
+class GameWorld extends FlameGame
     with HasKeyboardHandlerComponents, DragCallbacks {
-  MysticWoods({required this.showJoyStick});
+  GameWorld({
+    required this.world,
+    required this.player,
+    required this.showJoyStick,
+  });
 
+  @override
+  final Level world;
   final bool showJoyStick;
+  final Player player;
 
   late final CameraComponent cam;
   JoystickComponent? joystick;
-  final Player player = Player(character: GameConfig.character);
 
   @override
   FutureOr<void> onLoad() async {
     await images.loadAllImages();
-
-    final world = Level(
-      levelName: GameConfig.map,
-      player: player,
-    );
 
     cam = CameraComponent.withFixedResolution(
       world: world,
@@ -34,6 +33,7 @@ class MysticWoods extends FlameGame
     );
 
     cam.viewfinder.anchor = Anchor.topLeft;
+    cam.viewport.anchor = Anchor.topLeft;
 
     addAll([cam, world]);
     addJoystick();
@@ -60,13 +60,13 @@ class MysticWoods extends FlameGame
           images.fromCache('HUD/knob.png'),
         ),
       ),
-      knobRadius: 64,
+      knobRadius: 120,
       background: SpriteComponent(
         sprite: Sprite(
           images.fromCache('HUD/joystick.png'),
         ),
       ),
-      margin: const EdgeInsets.only(left: 5, bottom: 5),
+      margin: const EdgeInsets.only(left: 15, bottom: 15),
     );
 
     add(joystick!);
@@ -77,35 +77,36 @@ class MysticWoods extends FlameGame
 
     switch (joystick!.direction) {
       case JoystickDirection.left:
-        player.playerDirection = PlayerDirection.left;
-        break;
-      case JoystickDirection.upLeft:
-        player.playerDirection = PlayerDirection.left;
-        player.playerDirection = PlayerDirection.up;
-        break;
-      case JoystickDirection.downLeft:
-        player.playerDirection = PlayerDirection.left;
-        player.playerDirection = PlayerDirection.down;
+        player.horizontalMoviment = -1;
         break;
       case JoystickDirection.right:
-        player.playerDirection = PlayerDirection.right;
-        break;
-      case JoystickDirection.upRight:
-        player.playerDirection = PlayerDirection.right;
-        player.playerDirection = PlayerDirection.up;
-        break;
-      case JoystickDirection.downRight:
-        player.playerDirection = PlayerDirection.right;
-        player.playerDirection = PlayerDirection.down;
+        player.horizontalMoviment = 1;
         break;
       case JoystickDirection.up:
-        player.playerDirection = PlayerDirection.up;
+        player.verticalMoviment = -1;
         break;
       case JoystickDirection.down:
-        player.playerDirection = PlayerDirection.down;
+        player.verticalMoviment = 1;
+        break;
+      case JoystickDirection.upLeft:
+        player.horizontalMoviment = -1;
+        player.verticalMoviment = -1;
+        break;
+      case JoystickDirection.upRight:
+        player.horizontalMoviment = 1;
+        player.verticalMoviment = -1;
+        break;
+      case JoystickDirection.downLeft:
+        player.horizontalMoviment = -1;
+        player.verticalMoviment = 1;
+        break;
+      case JoystickDirection.downRight:
+        player.horizontalMoviment = 1;
+        player.verticalMoviment = 1;
         break;
       default:
-        player.playerDirection = PlayerDirection.none;
+        player.horizontalMoviment = 0;
+        player.verticalMoviment = 0;
         break;
     }
   }
